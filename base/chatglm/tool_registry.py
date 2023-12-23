@@ -128,7 +128,7 @@ def get_confyui_image(prompt: Annotated[str, '要生成图片的提示词,注意
     '''
     生成图片
     '''
-    with open("chatglm\\base.json", "r", encoding="utf-8") as f:
+    with open("base\\chatglm\\base.json", "r", encoding="utf-8") as f:
         data2 = json.load(f)
         data2['prompt']['3']['inputs']['seed'] = ''.join(
             random.sample('123456789012345678901234567890', 14))

@@ -59,15 +59,16 @@ class ChatGLM:
             return '已切换#代码模式 \n代码模式可以用于写python代码，例如：\n用python画一个爱心'
         elif '#清除模式会话' == question or '#4' == question:
             self.conversation_list[wxid][self.chat_type[wxid]
-                                         ] = self.system_content_msg[self.chat_type[wxid]]
+                                         ] = json.loads(json.dumps(self.system_content_msg[self.chat_type[wxid]]))
             return '已清除'
         elif '#清除全部会话' == question or '#5' == question:
-            self.conversation_list[wxid] = self.system_content_msg
+            self.conversation_list[wxid] = json.loads(json.dumps(self.system_content_msg))
             return '已清除'
 
         self.updateMessage(wxid, question, "user")
 
         try:
+            print(self.conversation_list[wxid][self.chat_type[wxid]],'============')
             params = dict(model="chatglm3", temperature=1.0,
                           messages=self.conversation_list[wxid][self.chat_type[wxid]], stream=False)
             if 'tool' == self.chat_type[wxid]:
@@ -80,8 +81,11 @@ class ChatGLM:
                         f"Function Call Response: {function_call.to_dict_recursive()}")
 
                     function_args = json.loads(function_call.arguments)
-                    observation = dispatch_tool(
-                        function_call.name, function_args)
+                    try:
+                        observation = dispatch_tool(function_call.name, function_args)
+                    except Exception as e:
+                        rsp = f'api调用错误: {e}'
+                        break
                     if isinstance(observation, dict):
                         res_type = observation['res_type'] if 'res_type' in observation else 'text'
                         res = observation['res'] if 'res_type' in observation else str(
@@ -90,6 +94,7 @@ class ChatGLM:
                             filename = observation['filename']
                             filePath = os.path.join(self.filePath, filename)
                             res.save(filePath)
+                            print(f"Image saved to {filePath}",self.wcf)
                             self.wcf and self.wcf.send_image(filePath, wxid)
                         tool_response = '[Image]' if res_type == 'image' else res
                     else:
@@ -152,7 +157,7 @@ class ChatGLM:
 
         # 初始化聊天记录,组装系统信息
         if wxid not in self.conversation_list.keys():
-            self.conversation_list[wxid] = self.system_content_msg
+            self.conversation_list[wxid] = json.loads(json.dumps(self.system_content_msg))
         if wxid not in self.chat_type.keys():
             self.chat_type[wxid] = 'chat'
 
